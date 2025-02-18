@@ -13,6 +13,73 @@ use embassy_imxrt::peripherals::ESPI;
 use espi_service::espi_service;
 use {defmt_rtt as _, panic_probe as _};
 
+// Mock battery service
+mod battery_service {
+    use defmt::info;
+    use embassy_sync::blocking_mutex::raw::NoopRawMutex;
+    use embassy_sync::once_lock::OnceLock;
+    use embassy_sync::signal::Signal;
+    use embedded_services::comms::{self, EndpointID, External, Internal};
+
+    struct Service {
+        endpoint: comms::Endpoint,
+
+        // This is can be an Embassy signal or channel or whatever Embassy async notification construct
+        signal: Signal<NoopRawMutex, espi_service::BatteryMessage>,
+    }
+
+    impl Service {
+        fn new() -> Self {
+            Service {
+                endpoint: comms::Endpoint::uninit(EndpointID::Internal(Internal::Battery)),
+                signal: Signal::new(),
+            }
+        }
+    }
+
+    impl comms::MailboxDelegate for Service {
+        fn receive(&self, message: &comms::Message) {
+            if let Some(msg) = message.data.get::<espi_service::BatteryMessage>() {
+                self.signal.signal(*msg);
+            }
+        }
+    }
+
+    static BATTERY_SERVICE: OnceLock<Service> = OnceLock::new();
+
+    // Initialize battery service
+    pub async fn init() {
+        let battery_service = BATTERY_SERVICE.get_or_init(Service::new);
+
+        comms::register_endpoint(battery_service, &battery_service.endpoint)
+            .await
+            .unwrap();
+    }
+
+    // Service to update the battery value in the memory map periodically
+    #[embassy_executor::task]
+    pub async fn battery_update_service() {
+        let battery_service = BATTERY_SERVICE.get().await;
+
+        let mut battery_remain_cap = u32::MAX;
+
+        loop {
+            battery_service
+                .endpoint
+                .send(
+                    EndpointID::External(External::Host),
+                    &espi_service::BatteryMessage::RemainCap(battery_remain_cap),
+                )
+                .await
+                .unwrap();
+            info!("Sending updated battery status to espi service");
+            battery_remain_cap -= 1;
+
+            embassy_time::Timer::after_secs(1).await;
+        }
+    }
+}
+
 bind_interrupts!(struct Irqs {
     ESPI => InterruptHandler<ESPI>;
 });
@@ -75,6 +142,10 @@ async fn main(spawner: Spawner) {
     };
 
     spawner.must_spawn(espi_service::espi_service(espi, memory_map_buffer));
+
+    battery_service::init().await;
+
+    spawner.spawn(battery_service::battery_update_service()).unwrap();
 
     loop {
         embassy_time::Timer::after_secs(10).await;
