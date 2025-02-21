@@ -20,7 +20,7 @@ mod battery_service {
     use embassy_sync::once_lock::OnceLock;
     use embassy_sync::signal::Signal;
     use embedded_services::comms::{self, EndpointID, External, Internal};
-    use espi_service::BatteryMessage;
+    use espi_service::{BatteryMessage, ThermalMessage};
 
     struct Service {
         endpoint: comms::Endpoint,

@@ -51,3 +51,43 @@ pub enum BatteryMessage {
     RunTime(u32),
     SampleTime(u32),
 }
+
+// #[repr(C, packed)]
+// #[derive(Default, Copy, Clone, Debug)]
+// pub struct Thermal {
+//     pub events: u16,
+//     pub cool_mode: u32,
+//     pub dba_limit: u32,
+//     pub sonne_limit: u32,
+//     pub ma_limit: u32,
+//     pub fan1_on_temp: u32,
+//     pub fan1_ramp_temp: u32,
+//     pub fan1_max_temp: u32,
+//     pub fan1_crt_temp: u32,
+//     pub fan1_hot_temp: u32,
+//     pub fan1_max_rpm: u32,
+//     pub fan1_cur_rpm: u32,
+//     pub tmp1_val: u32,
+//     pub tmp1_timeout: u32,
+//     pub tmp1_low: u32,
+//     pub tmp1_high: u32,
+// }
+
+pub enum ThermalMessage {
+    Events(u16),
+    CoolMode(u32),
+    DbaLimit(u32),
+    SonneLimit(u32),
+    MaLimit(u32),
+    Fan1OnTemp(u32),
+    Fan1RampTemp(u32),
+    Fan1MaxTemp(u32),
+    Fan1CrtTemp(u32),
+    Fan1HotTemp(u32),
+    Fan1MaxRpm(u32),
+    Fan1CurRpm(u32),
+    Tmp1Val(u32),
+    Tmp1Timeout(u32),
+    Tmp1Low(u32),
+    Tmp1High(u32),
+}

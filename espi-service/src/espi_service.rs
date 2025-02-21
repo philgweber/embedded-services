@@ -121,6 +121,9 @@ impl comms::MailboxDelegate for Service {
         if let Some(msg) = message.data.get::<super::BatteryMessage>() {
             update_battery_section(msg);
         }
+        else if let Some(msg) = message.data.get::<super::ThermalMessage>() {
+            update_thermal_section(msg);
+        }
     }
 }
 
@@ -174,6 +177,30 @@ fn update_battery_section(msg: &super::BatteryMessage) {
             super::BatteryMessage::ChargeTime(charge_time) => memory_map.batt.charge_time = *charge_time,
             super::BatteryMessage::RunTime(run_time) => memory_map.batt.run_time = *run_time,
             super::BatteryMessage::SampleTime(sample_time) => memory_map.batt.sample_time = *sample_time,
+        }
+    });
+}
+
+fn update_thermal_section(msg: &super::ThermalMessage) {
+    MEMORY_MAP.try_get().unwrap().lock(|memory_map| {
+        let mut memory_map = memory_map.borrow_mut();
+        match msg {
+            super::ThermalMessage::Events(events) => memory_map.therm.events = *events,
+            super::ThermalMessage::CoolMode(cool_mode) => memory_map.therm.cool_mode = *cool_mode,
+            super::ThermalMessage::DbaLimit(dba_limit) => memory_map.therm.dba_limit = *dba_limit,
+            super::ThermalMessage::SonneLimit(sonne_limit) => memory_map.therm.sonne_limit = *sonne_limit,
+            super::ThermalMessage::MaLimit(ma_limit) => memory_map.therm.ma_limit = *ma_limit,
+            super::ThermalMessage::Fan1OnTemp(fan1_on_temp) => memory_map.therm.fan1_on_temp = *fan1_on_temp,
+            super::ThermalMessage::Fan1RampTemp(fan1_ramp_temp) => memory_map.therm.fan1_ramp_temp = *fan1_ramp_temp,
+            super::ThermalMessage::Fan1MaxTemp(fan1_max_temp) => memory_map.therm.fan1_max_temp = *fan1_max_temp,
+            super::ThermalMessage::Fan1CrtTemp(fan1_crt_temp) => memory_map.therm.fan1_crt_temp = *fan1_crt_temp,
+            super::ThermalMessage::Fan1HotTemp(fan1_hot_temp) => memory_map.therm.fan1_hot_temp = *fan1_hot_temp,
+            super::ThermalMessage::Fan1MaxRpm(fan1_max_rpm) => memory_map.therm.fan1_max_rpm = *fan1_max_rpm,
+            super::ThermalMessage::Fan1CurRpm(fan1_cur_rpm) => memory_map.therm.fan1_cur_rpm = *fan1_cur_rpm,
+            super::ThermalMessage::Tmp1Val(tmp1_val) => memory_map.therm.tmp1_val = *tmp1_val,
+            super::ThermalMessage::Tmp1Timeout(tmp1_timeout) => memory_map.therm.tmp1_timeout = *tmp1_timeout,
+            super::ThermalMessage::Tmp1Low(tmp1_low) => memory_map.therm.tmp1_low = *tmp1_low,
+            super::ThermalMessage::Tmp1High(tmp1_high) => memory_map.therm.tmp1_high = *tmp1_high,
         }
     });
 }
