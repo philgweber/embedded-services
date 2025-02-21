@@ -72,7 +72,7 @@ pub enum BatteryMessage {
 //     pub tmp1_low: u32,
 //     pub tmp1_high: u32,
 // }
-
+#[derive(Copy, Clone, Debug)]
 pub enum ThermalMessage {
     Events(u16),
     CoolMode(u32),
