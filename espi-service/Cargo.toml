@@ -18,7 +18,7 @@ embassy-imxrt = { git = "https://github.com/tim18763/embassy-imxrt", features = 
     "time-driver",
     "time",
     "mimxrt633s",
-], branch = "personal/v-kretonw/CaptureTimer" }
+], branch = "personal/v-kretonw/FanTach" }
 
 embassy-executor = { git = "https://github.com/embassy-rs/embassy", features = [
     "arch-cortex-m",
