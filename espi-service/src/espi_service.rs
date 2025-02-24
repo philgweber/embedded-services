@@ -1,12 +1,10 @@
-use embassy_sync::{blocking_mutex::Mutex, once_lock::OnceLock};
+use core::cell::RefCell;
 
 use embassy_sync::blocking_mutex::raw::ThreadModeRawMutex;
-use embedded_services::{
-    comms::{self, EndpointID, External},
-    info,
-};
-
-use core::cell::RefCell;
+use embassy_sync::blocking_mutex::Mutex;
+use embassy_sync::once_lock::OnceLock;
+use embedded_services::comms::{self, EndpointID, External};
+use embedded_services::info;
 
 #[repr(C, packed)]
 #[derive(Default, Copy, Clone, Debug)]
@@ -116,13 +114,22 @@ impl Service {
     }
 }
 
+impl Default for Service {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl comms::MailboxDelegate for Service {
     fn receive(&self, message: &comms::Message) {
-        if let Some(msg) = message.data.get::<super::BatteryMessage>() {
+        if let Some(msg) = message.data.get::<super::CapabilitiesMessage>() {
+            update_capabilities_section(msg);
+        } else if let Some(msg) = message.data.get::<super::BatteryMessage>() {
             update_battery_section(msg);
-        }
-        else if let Some(msg) = message.data.get::<super::ThermalMessage>() {
+        } else if let Some(msg) = message.data.get::<super::ThermalMessage>() {
             update_thermal_section(msg);
+        } else if let Some(msg) = message.data.get::<super::TimeAlarmMessage>() {
+            update_time_alarm_section(msg);
         }
     }
 }
@@ -132,6 +139,7 @@ static MEMORY_MAP: OnceLock<Mutex<ThreadModeRawMutex, RefCell<&mut MemoryMap>>> 
 
 // Initialize eSPI service and register it with the transport service
 pub async fn init() {
+    info!("Initializing memory map");
     MEMORY_MAP.try_get().unwrap().lock(|memory_map| {
         let mut memory_map = memory_map.borrow_mut();
         memory_map.ver.major = 0;
@@ -140,11 +148,29 @@ pub async fn init() {
         memory_map.ver.res0 = 0;
     });
 
-    let espi_service = ESPI_SERVICE.get_or_init(|| Service::new());
+    let espi_service = ESPI_SERVICE.get_or_init(Service::new);
 
+    info!("Registering eSPI EP");
     comms::register_endpoint(espi_service, &espi_service.endpoint)
         .await
         .unwrap();
+}
+
+fn update_capabilities_section(msg: &super::CapabilitiesMessage) {
+    MEMORY_MAP.try_get().unwrap().lock(|memory_map| {
+        let mut memory_map = memory_map.borrow_mut();
+        match msg {
+            super::CapabilitiesMessage::Events(events) => memory_map.caps.events = *events,
+            super::CapabilitiesMessage::FwVersion(fw_version) => memory_map.caps.fw_version = *fw_version,
+            super::CapabilitiesMessage::SecureState(secure_state) => memory_map.caps.secure_state = *secure_state,
+            super::CapabilitiesMessage::BootStatus(boot_status) => memory_map.caps.boot_status = *boot_status,
+            super::CapabilitiesMessage::FanMask(fan_mask) => memory_map.caps.fan_mask = *fan_mask,
+            super::CapabilitiesMessage::BatteryMask(battery_mask) => memory_map.caps.battery_mask = *battery_mask,
+            super::CapabilitiesMessage::TempMask(temp_mask) => memory_map.caps.temp_mask = *temp_mask,
+            super::CapabilitiesMessage::KeyMask(key_mask) => memory_map.caps.key_mask = *key_mask,
+            super::CapabilitiesMessage::DebugMask(debug_mask) => memory_map.caps.debug_mask = *debug_mask,
+        }
+    });
 }
 
 fn update_battery_section(msg: &super::BatteryMessage) {
@@ -205,6 +231,31 @@ fn update_thermal_section(msg: &super::ThermalMessage) {
     });
 }
 
+fn update_time_alarm_section(msg: &super::TimeAlarmMessage) {
+    MEMORY_MAP.try_get().unwrap().lock(|memory_map| {
+        let mut memory_map = memory_map.borrow_mut();
+        match msg {
+            super::TimeAlarmMessage::Events(events) => memory_map.tas.events = *events,
+            super::TimeAlarmMessage::Capability(capability) => memory_map.tas.capability = *capability,
+            super::TimeAlarmMessage::Year(year) => memory_map.tas.year = *year,
+            super::TimeAlarmMessage::Month(month) => memory_map.tas.month = *month,
+            super::TimeAlarmMessage::Day(day) => memory_map.tas.day = *day,
+            super::TimeAlarmMessage::Hour(hour) => memory_map.tas.hour = *hour,
+            super::TimeAlarmMessage::Minute(minute) => memory_map.tas.minute = *minute,
+            super::TimeAlarmMessage::Second(second) => memory_map.tas.second = *second,
+            super::TimeAlarmMessage::Valid(valid) => memory_map.tas.valid = *valid,
+            super::TimeAlarmMessage::Daylight(daylight) => memory_map.tas.daylight = *daylight,
+            super::TimeAlarmMessage::Res1(res1) => memory_map.tas.res1 = *res1,
+            super::TimeAlarmMessage::Milli(milli) => memory_map.tas.milli = *milli,
+            super::TimeAlarmMessage::TimeZone(time_zone) => memory_map.tas.time_zone = *time_zone,
+            super::TimeAlarmMessage::Res2(res2) => memory_map.tas.res2 = *res2,
+            super::TimeAlarmMessage::AlarmStatus(alarm_status) => memory_map.tas.alarm_status = *alarm_status,
+            super::TimeAlarmMessage::AcTimeVal(ac_time_val) => memory_map.tas.ac_time_val = *ac_time_val,
+            super::TimeAlarmMessage::DcTimeVal(dc_time_val) => memory_map.tas.dc_time_val = *dc_time_val,
+        }
+    });
+}
+
 use embassy_imxrt::espi;
 
 #[embassy_executor::task]
@@ -213,12 +264,12 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
     info!("MemoryMap size: {}", size_of::<MemoryMap>());
 
     if size_of::<MemoryMap>() > memory_map_buffer.len() {
-        panic!("MemoryMap is too bug for reserved memory buffer ");
+        panic!("MemoryMap is too big for reserved memory buffer ");
     }
 
     memory_map_buffer.fill(0);
 
-    let memory_map: &mut MemoryMap = unsafe { core::mem::transmute(memory_map_buffer.as_mut_ptr()) };
+    let memory_map: &mut MemoryMap = unsafe { &mut *(memory_map_buffer.as_mut_ptr() as *mut MemoryMap) };
     let res = MEMORY_MAP.init(Mutex::new(RefCell::new(memory_map)));
 
     if res.is_err() {
@@ -235,7 +286,13 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
         defmt::info!("------------------------------------------------------------ waiting for event");
         let event = espi.wait_for_event().await;
         match event {
-            Ok(espi::Event::Port0(_port_event)) => {
+            Ok(espi::Event::Port0(port_event)) => {
+                defmt::info!(
+                    "Port 0, direction: {}, length: {}, offset: {}",
+                    port_event.direction,
+                    port_event.length,
+                    port_event.offset,
+                );
                 defmt::info!("Port 0");
                 espi.complete_port(0).await;
             }

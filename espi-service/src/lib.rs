@@ -52,26 +52,6 @@ pub enum BatteryMessage {
     SampleTime(u32),
 }
 
-// #[repr(C, packed)]
-// #[derive(Default, Copy, Clone, Debug)]
-// pub struct Thermal {
-//     pub events: u16,
-//     pub cool_mode: u32,
-//     pub dba_limit: u32,
-//     pub sonne_limit: u32,
-//     pub ma_limit: u32,
-//     pub fan1_on_temp: u32,
-//     pub fan1_ramp_temp: u32,
-//     pub fan1_max_temp: u32,
-//     pub fan1_crt_temp: u32,
-//     pub fan1_hot_temp: u32,
-//     pub fan1_max_rpm: u32,
-//     pub fan1_cur_rpm: u32,
-//     pub tmp1_val: u32,
-//     pub tmp1_timeout: u32,
-//     pub tmp1_low: u32,
-//     pub tmp1_high: u32,
-// }
 #[derive(Copy, Clone, Debug)]
 pub enum ThermalMessage {
     Events(u16),
@@ -90,4 +70,25 @@ pub enum ThermalMessage {
     Tmp1Timeout(u32),
     Tmp1Low(u32),
     Tmp1High(u32),
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum TimeAlarmMessage {
+    Events(u16),
+    Capability(u32),
+    Year(u16),
+    Month(u8),
+    Day(u8),
+    Hour(u8),
+    Minute(u8),
+    Second(u8),
+    Valid(u8),
+    Daylight(u8),
+    Res1(u8),
+    Milli(u16),
+    TimeZone(u16),
+    Res2(u16),
+    AlarmStatus(u32),
+    AcTimeVal(u32),
+    DcTimeVal(u32),
 }

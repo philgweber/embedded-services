@@ -20,7 +20,6 @@ mod battery_service {
     use embassy_sync::once_lock::OnceLock;
     use embassy_sync::signal::Signal;
     use embedded_services::comms::{self, EndpointID, External, Internal};
-    use espi_service::{BatteryMessage, ThermalMessage};
 
     struct Service {
         endpoint: comms::Endpoint,
@@ -50,7 +49,7 @@ mod battery_service {
 
     // Initialize battery service
     pub async fn init() {
-        let battery_service = BATTERY_SERVICE.get_or_init(|| Service::new());
+        let battery_service = BATTERY_SERVICE.get_or_init(Service::new);
 
         comms::register_endpoint(battery_service, &battery_service.endpoint)
             .await
@@ -62,7 +61,7 @@ mod battery_service {
     pub async fn battery_update_service() {
         let battery_service = BATTERY_SERVICE.get().await;
 
-        let mut battery_remain_cap = u32::max_value();
+        let mut battery_remain_cap = u32::MAX;
 
         loop {
             battery_service
