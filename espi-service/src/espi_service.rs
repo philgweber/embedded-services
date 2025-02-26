@@ -9,7 +9,8 @@ use embedded_services::info;
 #[repr(C, packed)]
 #[derive(Default, Copy, Clone, Debug)]
 pub struct Capabilities {
-    pub events: u32,
+    pub events: u16,
+    pub res1: u16,
     pub fw_version: super::Version,
     pub secure_state: u8,
     pub boot_status: u8,
@@ -24,7 +25,8 @@ pub struct Capabilities {
 #[repr(C, packed)]
 #[derive(Default, Copy, Clone, Debug)]
 pub struct Battery {
-    pub events: u32,
+    pub events: u16,
+    pub res1: u16,
     pub status: u32,
     pub last_full_charge: u32,
     pub cycle_count: u32,
@@ -54,7 +56,8 @@ pub struct Battery {
 #[repr(C, packed)]
 #[derive(Default, Copy, Clone, Debug)]
 pub struct Thermal {
-    pub events: u32,
+    pub events: u16,
+    pub res1: u16,
     pub cool_mode: u32,
     pub dba_limit: u32,
     pub sonne_limit: u32,
@@ -75,7 +78,8 @@ pub struct Thermal {
 #[repr(C, packed)]
 #[derive(Default, Copy, Clone, Debug)]
 pub struct TimeAlarm {
-    pub events: u32,
+    pub events: u16,
+    pub res1: u16,
     pub capability: u32,
     pub year: u16,
     pub month: u8,
