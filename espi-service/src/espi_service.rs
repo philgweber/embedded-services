@@ -9,7 +9,7 @@ use embedded_services::info;
 #[repr(C, packed)]
 #[derive(Default, Copy, Clone, Debug)]
 pub struct Capabilities {
-    pub events: u16,
+    pub events: u32,
     pub fw_version: super::Version,
     pub secure_state: u8,
     pub boot_status: u8,
@@ -18,12 +18,14 @@ pub struct Capabilities {
     pub temp_mask: u16,
     pub key_mask: u16,
     pub debug_mask: u16,
+    pub res0: u16,
 }
 
 #[repr(C, packed)]
 #[derive(Default, Copy, Clone, Debug)]
 pub struct Battery {
-    pub events: u16,
+    pub events: u32,
+    pub status: u32,
     pub last_full_charge: u32,
     pub cycle_count: u32,
     pub state: u32,
@@ -52,7 +54,7 @@ pub struct Battery {
 #[repr(C, packed)]
 #[derive(Default, Copy, Clone, Debug)]
 pub struct Thermal {
-    pub events: u16,
+    pub events: u32,
     pub cool_mode: u32,
     pub dba_limit: u32,
     pub sonne_limit: u32,
@@ -73,7 +75,7 @@ pub struct Thermal {
 #[repr(C, packed)]
 #[derive(Default, Copy, Clone, Debug)]
 pub struct TimeAlarm {
-    pub events: u16,
+    pub events: u32,
     pub capability: u32,
     pub year: u16,
     pub month: u8,
@@ -97,9 +99,9 @@ pub struct TimeAlarm {
 pub struct MemoryMap {
     pub ver: super::Version,
     pub caps: Capabilities,
+    pub tas: TimeAlarm,
     pub batt: Battery,
     pub therm: Thermal,
-    pub tas: TimeAlarm,
 }
 
 pub struct Service {
@@ -295,6 +297,11 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
                 );
                 defmt::info!("Port 0");
                 espi.complete_port(0).await;
+
+                let regs = unsafe { &*embassy_imxrt::pac::Espi::ptr() };
+                regs.port(0).irulestat().modify(|_,w| w.srst().set_bit());
+
+                surfdbg_info!("Port0 offset: {:?}", port_event.offset);
             }
             Ok(espi::Event::Port1(_)) => {
                 defmt::info!("Port 1");
