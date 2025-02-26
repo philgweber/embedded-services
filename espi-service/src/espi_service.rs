@@ -298,10 +298,6 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
                 defmt::info!("Port 0");
                 espi.complete_port(0).await;
 
-                let regs = unsafe { &*embassy_imxrt::pac::Espi::ptr() };
-                regs.port(0).irulestat().modify(|_,w| w.srst().set_bit());
-
-                surfdbg_info!("Port0 offset: {:?}", port_event.offset);
             }
             Ok(espi::Event::Port1(_)) => {
                 defmt::info!("Port 1");
