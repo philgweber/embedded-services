@@ -79,7 +79,7 @@ pub struct Thermal {
 #[derive(Default, Copy, Clone, Debug)]
 pub struct TimeAlarm {
     pub events: u16,
-    pub res1: u16,
+    pub res0: u16,
     pub capability: u32,
     pub year: u16,
     pub month: u8,
