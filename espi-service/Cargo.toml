@@ -13,12 +13,12 @@ embassy-time = { git = "https://github.com/embassy-rs/embassy" }
 embassy-sync = { git = "https://github.com/embassy-rs/embassy" }
 defmt = { version = "0.3", optional = true }
 log = { version = "0.4.14", optional = true }
-embassy-imxrt = { path = "/home/phil/github/diomedes/demo/embassy-imxrt", features = [
+embassy-imxrt = { git = "https://github.com/philgweber/embassy-imxrt", features = [
     "defmt",
     "time-driver",
     "time",
     "mimxrt633s",
-] }
+], branch= "main" }
 
 embassy-executor = { git = "https://github.com/embassy-rs/embassy", features = [
     "arch-cortex-m",
