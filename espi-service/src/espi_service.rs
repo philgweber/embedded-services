@@ -179,10 +179,11 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
     loop {
         let event = espi.wait_for_event().await;
         match event {
-            Ok(espi::Event::Port0(port_event)) => {
+            Ok(espi::Event::PeripheralEvent(port_event)) => {
                 info!(
-                    "eSPI Port 0, direction: {}, offset: {}, length: {}",
-                    port_event.direction, port_event.offset, port_event.length,
+                    "eSPI PeripheralEvent Port: {}, direction: {}, address: {}, offset: {}, length: {}",
+                    port_event.port, port_event.direction, port_event.offset, 
+                    port_event.base_addr, port_event.length,
                 );
 
                 // If it is a peripheral channel write, then we need to notify the service
@@ -201,40 +202,40 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
 
                 espi.complete_port(0).await;
             }
-            Ok(espi::Event::Port1(port_event)) => {
-                info!("eSPI Port 1");
 
-                // Assume port1 is used for OOB messages and start from 0x2000_0200
-                // If this changes, we need to update the offset in the eSPI driver
-                let data = unsafe {
-                    let start_oob_data = 0x2000_0200 as *const u8 as *mut u8;
-                    let espi_oob_len = 0x200;
+            Ok(espi::Event::OOBEvent(port_event)) => {
+                info!(
+                    "eSPI OOBEvent Port: {}, direction: {}, address: {}, offset: {}, length: {}",
+                    port_event.port, port_event.direction, port_event.offset, 
+                    port_event.base_addr, port_event.length,
+                );
 
-                    slice::from_raw_parts_mut(start_oob_data, espi_oob_len)
-                };
 
                 if port_event.direction {
-                    #[cfg(feature = "defmt")]
-                    info!("OOB message: {:02X}", &data[0..port_event.length]);
+                    unsafe {
+                        let src_slice = slice::from_raw_parts(port_event.base_addr as *const u8, port_event.length);
+                        #[cfg(feature = "defmt")]
+                        info!("OOB message: {:02X}", &src_slice[0..]);
 
-                    espi.complete_port(1).await;
+                        let result = espi.oob_get_write_buffer(port_event.port);
+                        match result {
+                            Ok(dest_slice) => {
+                                dest_slice.copy_from_slice(src_slice);
+                            }
+                            Err(e) => {
+                                error!("Failed to retrieve OOB write buffer: {}",e)
+                            }
+                        }
+                    };
 
-                    for i in 0..port_event.length {
-                        data[0x100 + i] = data[i];
-                    }
-                    espi.oob_read_start(1, port_event.length as u8);
+                    // Don't complete event until we read out OOB data
+                    espi.complete_port(port_event.port).await;
+
+                    // Test code send same data on loopback
+                    espi.oob_write_data(port_event.port, port_event.length as u8);
                 } else {
-                    espi.complete_port(1).await;
+                    espi.complete_port(port_event.port).await;
                 }
-            }
-            Ok(espi::Event::Port2(_port_event)) => {
-                info!("eSPI Port 2");
-            }
-            Ok(espi::Event::Port3(_)) => {
-                info!("eSPI Port 3");
-            }
-            Ok(espi::Event::Port4(_)) => {
-                info!("eSPI Port 4");
             }
             Ok(espi::Event::Port80) => {
                 info!("eSPI Port 80");
