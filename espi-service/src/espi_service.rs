@@ -176,11 +176,6 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
         .await
         .unwrap();
 
-    unsafe {
-        let test_mem = 0x2000_0010 as *mut u32;
-        *test_mem = 0xff;
-    };
-
     loop {
         let event = espi.wait_for_event().await;
         match event {
@@ -192,7 +187,6 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
                 );
 
                 // If it is a peripheral channel write, then we need to notify the service
-                /*
                 if port_event.direction {
                     let res = espi_service
                         .route_to_service(port_event.offset, port_event.length)
@@ -205,7 +199,6 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
                         );
                     }
                 }
-                */
 
                 espi.complete_port(port_event.port).await;
             }
