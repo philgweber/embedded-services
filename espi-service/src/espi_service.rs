@@ -176,6 +176,11 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
         .await
         .unwrap();
 
+    unsafe {
+        let test_mem = 0x2000_0010 as *mut u32;
+        *test_mem = 0xff;
+    };
+
     loop {
         let event = espi.wait_for_event().await;
         match event {
@@ -187,6 +192,7 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
                 );
 
                 // If it is a peripheral channel write, then we need to notify the service
+                /*
                 if port_event.direction {
                     let res = espi_service
                         .route_to_service(port_event.offset, port_event.length)
@@ -199,8 +205,9 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
                         );
                     }
                 }
+                */
 
-                espi.complete_port(0).await;
+                espi.complete_port(port_event.port).await;
             }
 
             Ok(espi::Event::OOBEvent(port_event)) => {
@@ -220,7 +227,7 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
                         let result = espi.oob_get_write_buffer(port_event.port);
                         match result {
                             Ok(dest_slice) => {
-                                dest_slice.copy_from_slice(src_slice);
+                                dest_slice[..src_slice.len()].copy_from_slice(src_slice);
                             }
                             Err(e) => {
                                 error!("Failed to retrieve OOB write buffer: {}",e)
@@ -230,9 +237,9 @@ pub async fn espi_service(mut espi: espi::Espi<'static>, memory_map_buffer: &'st
 
                     // Don't complete event until we read out OOB data
                     espi.complete_port(port_event.port).await;
-
+                    
                     // Test code send same data on loopback
-                    espi.oob_write_data(port_event.port, port_event.length as u8);
+                    let _ = espi.oob_write_data(port_event.port, port_event.length as u8);
                 } else {
                     espi.complete_port(port_event.port).await;
                 }
