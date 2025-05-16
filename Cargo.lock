@@ -387,7 +387,7 @@ dependencies = [
  "bitvec",
  "convert_case",
  "dd-manifest-tree",
- "itertools",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -418,6 +418,23 @@ name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
+
+[[package]]
+name = "embassy-embedded-hal"
+version = "0.3.0"
+source = "git+https://github.com/embassy-rs/embassy#e8b1ea14c7fb151aa5e296ca8f9724f175bdeaef"
+dependencies = [
+ "embassy-futures",
+ "embassy-hal-internal",
+ "embassy-sync",
+ "embassy-time",
+ "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+ "embedded-storage",
+ "embedded-storage-async",
+ "nb 1.1.0",
+]
 
 [[package]]
 name = "embassy-executor"
@@ -466,7 +483,7 @@ dependencies = [
 [[package]]
 name = "embassy-imxrt"
 version = "0.1.0"
-source = "git+https://github.com/OpenDevicePartnership/embassy-imxrt#3dfddf9c288c689b72bc143648a1a5a1adea0955"
+source = "git+https://github.com/philgweber/embassy-imxrt#adb9f889e8126ebf56419027082bb4b690f766a9"
 dependencies = [
  "cfg-if",
  "cortex-m",
@@ -474,6 +491,7 @@ dependencies = [
  "critical-section",
  "defmt 1.0.1",
  "document-features",
+ "embassy-embedded-hal",
  "embassy-futures",
  "embassy-hal-internal",
  "embassy-sync",
@@ -487,6 +505,7 @@ dependencies = [
  "embedded-io",
  "embedded-io-async",
  "fixed",
+ "itertools 0.11.0",
  "mimxrt600-fcb",
  "mimxrt633s-pac",
  "mimxrt685s-pac",
@@ -886,6 +905,15 @@ name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
+
+[[package]]
+name = "itertools"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1c173a5686ce8bfa551b3563d0c2170bf24ca44da99c7ca4bfdab5418c3fe57"
+dependencies = [
+ "either",
+]
 
 [[package]]
 name = "itertools"
